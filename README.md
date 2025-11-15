@@ -264,32 +264,7 @@ curl -X POST http://localhost:8000/api/analyze/ -H "Content-Type: application/js
 
 
 ```
-
-## Design Decisions
-
-### Que compromisos hiciste?
-
-**Simular AI en lugar de analysis real de emociones, debería conectarse a un modelo ya sea local o integrarlo a modelos externos**  
-
-**Procesamiento síncrono, debería ser async para que pueda permitir el flujo adecuado de las operaciones**  
-
-**Relaciona palabras sencillas como necesito, ayudame, y no tiene contexto**  
-
-**Las sesiones deberian de llevar analysis semantico también**  
-
-
-### Mejoras con mas tiempo
-
-**1. Integraciones reales**  
-
-**2. Procesos internos**  
-
-**3. Mejor detección de acciones con ML**  
-
-**5. Mejores pruebas unitarias**  
-
-
-### A) Technical Validation (Verify the Code Works)
+### Code Validation
 
 Check if the analysis is working correctly:
 
@@ -338,7 +313,33 @@ curl -X POST http://localhost:8000/api/analyze/ -H "Content-Type: application/js
 # Should return questions_asked: 0
 ```
 
-### B) Review and Rate Analysis Results (For Evaluators)
+
+## Design Decisions
+
+### Que compromisos hiciste?
+
+**Simular AI en lugar de analysis real de emociones, debería conectarse a un modelo ya sea local o integrarlo a modelos externos**  
+
+**Procesamiento síncrono, debería ser async para que pueda permitir el flujo adecuado de las operaciones**  
+
+**Relaciona palabras sencillas como necesito, ayudame, y no tiene contexto**  
+
+**Las sesiones deberian de llevar analysis semantico también**  
+
+
+### Mejoras con mas tiempo
+
+**1. Integraciones reales**  
+
+**2. Procesos internos**  
+
+**3. Mejor detección de acciones con ML**  
+
+**5. Mejores pruebas unitarias**  
+
+
+
+### Revisiones y analisis de resultados de conversacions (Para Psicólogos)
 
 If you want to study the analysis and provide feedback:
 
@@ -425,7 +426,6 @@ JOIN analyzer_analysisreport ar ON c.id = ar.conversation_id
 WHERE c.id = 1;
 ```
 
-This gives you a complete package to share with reviewers or save for documentation.
 
 ## Support
 
