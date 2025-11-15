@@ -289,9 +289,9 @@ curl -X POST http://localhost:8000/api/analyze/ -H "Content-Type: application/js
 **5. Mejores pruebas unitarias**  
 
 
-### Validate Results
+### A) Technical Validation (Verify the Code Works)
 
-Check if the analysis is working:
+Check if the analysis is working correctly:
 
 **1. Check the Database**
 ```sql
@@ -317,7 +317,7 @@ ORDER BY timestamp;
 
 **2. Manual Verification**
 - Count the "?" in messages yourself - should match `questions_asked`
-- Look for keywords, should match `actions_identified`
+- Look for keywords (need, help, could, task, do) - should match `actions_identified`
 - Check timestamps - gaps >10 minutes should create new sessions
 
 **3. Use the Admin Panel**
@@ -325,10 +325,10 @@ ORDER BY timestamp;
 # Access at http://localhost:8000/admin/
 # Login: admin / admin123
 ```
-Browse through conversations, messages, and reports visually. You can see all the data and verify the analysis makes sense.
+Browse through conversations, messages, and reports visually.
 
 **4. Compare Multiple Runs**
-Send the same transcript twice - you should get similar results (emotions will differ since they're random, but sessions/questions/actions should be identical).
+Send the same transcript twice - results should be consistent (emotions will differ since they're random).
 
 **5. Test Edge Cases**
 ```bash
@@ -336,16 +336,101 @@ Send the same transcript twice - you should get similar results (emotions will d
 curl -X POST http://localhost:8000/api/analyze/ -H "Content-Type: application/json" \
   -d '{"transcript":[{"timestamp":"2025-11-14T10:00:00Z","role":"user","text":"Hello there"}]}'
 # Should return questions_asked: 0
-
-# Test with multiple sessions
-# Send messages with >10 min gaps and verify session_count increases
 ```
+
+### B) Review and Rate Analysis Results (For Evaluators)
+
+If you want to study the analysis and provide feedback:
+
+**1. View Analysis in Admin Panel**
+```bash
+# Access at http://localhost:8000/admin/
+# Login: admin / admin123
+```
+- Click on **Analysis Reports** to see all analyses
+- Click on a specific report to view details
+- Read the conversation messages
+- Review the analysis results
+
+**2. Query for Review**
+```sql
+-- Get conversation with analysis for review
+SELECT 
+  c.id,
+  c.created_at,
+  ar.session_count,
+  ar.questions_asked,
+  ar.actions_identified,
+  ar.emotion_results
+FROM analyzer_conversation c
+JOIN analyzer_analysisreport ar ON c.id = ar.conversation_id
+WHERE c.id = 1;  -- Change to the conversation you want to review
+
+-- Read the messages
+SELECT role, text, timestamp 
+FROM analyzer_message 
+WHERE conversation_id = 1  -- Change to the conversation you want to review
+ORDER BY timestamp;
+```
+
+**3. Add Your Review/Rating (Optional Enhancement)**
+
+You can extend the system to add reviews:
+
+```sql
+-- Create a review table
+CREATE TABLE IF NOT EXISTS analysis_review (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER REFERENCES analyzer_conversation(id),
+    reviewer_name VARCHAR(100),
+    accuracy_rating INTEGER CHECK (accuracy_rating >= 1 AND accuracy_rating <= 5),
+    comments TEXT,
+    reviewed_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Add your review
+INSERT INTO analysis_review (conversation_id, reviewer_name, accuracy_rating, comments)
+VALUES (1, 'Jane Doe', 4, 'Session detection is accurate. Action detection could be improved.');
+
+-- View all reviews
+SELECT 
+  ar.conversation_id,
+  ar.reviewer_name,
+  ar.accuracy_rating,
+  ar.comments,
+  ar.reviewed_at
+FROM analysis_review ar
+ORDER BY ar.reviewed_at DESC;
+```
+
+**4. Export for External Review**
+```sql
+-- Export conversation with analysis as JSON
+SELECT json_build_object(
+  'conversation_id', c.id,
+  'created_at', c.created_at,
+  'messages', (
+    SELECT json_agg(json_build_object('role', role, 'text', text, 'timestamp', timestamp))
+    FROM analyzer_message WHERE conversation_id = c.id ORDER BY timestamp
+  ),
+  'analysis', json_build_object(
+    'session_count', ar.session_count,
+    'questions_asked', ar.questions_asked,
+    'actions_identified', ar.actions_identified,
+    'emotions', ar.emotion_results
+  )
+) as review_package
+FROM analyzer_conversation c
+JOIN analyzer_analysisreport ar ON c.id = ar.conversation_id
+WHERE c.id = 1;
+```
+
+This gives you a complete package to share with reviewers or save for documentation.
 
 ## Support
 
 - Test connection: `uv run python test_connection.py`
 - Test API: `uv run python test_api.py`
 - Check logs: Server output or `docker logs mindsurf-postgres`
-- Django docs: https://docs.djangoproject.com/
-- DRF docs: https://www.django-rest-framework.org/
+
 
